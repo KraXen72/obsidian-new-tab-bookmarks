@@ -1,4 +1,5 @@
 import { Plugin, TFile, TFolder, WorkspaceLeaf, setIcon } from 'obsidian';
+import { SampleSettingTab } from './settings';
 
 interface BookmarkItem {
 	type: 'file' | 'folder' | 'search' | 'url' | 'group' | 'graph';
@@ -10,15 +11,19 @@ interface BookmarkItem {
 }
 
 interface BookmarksNewTabPluginSettings {
+	asciiArt?: string;
 }
 
-const DEFAULT_SETTINGS: BookmarksNewTabPluginSettings = {};
+const DEFAULT_SETTINGS: BookmarksNewTabPluginSettings = {
+	asciiArt: '',
+};
 
 export default class BookmarksNewTabPlugin extends Plugin {
 	settings: BookmarksNewTabPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
+		this.addSettingTab(new SampleSettingTab(this.app, this));
 		// Inject into any already-open empty leaves on load
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			if (leaf.getViewState().type === 'empty') {
@@ -49,6 +54,7 @@ export default class BookmarksNewTabPlugin extends Plugin {
 	onunload() {
 		document.querySelectorAll('.new-tab-bookmarks-bookmarks').forEach(el => el.remove());
 		document.querySelectorAll('.new-tab-bookmarks-divider').forEach(el => el.remove());
+		document.querySelectorAll('.new-tab-bookmarks-ascii-art').forEach(el => el.remove());
 	}
 
 	private getBookmarks(): BookmarkItem[] {
@@ -63,21 +69,46 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		// Don't inject twice into the same leaf
 		if (container.querySelector('.new-tab-bookmarks-bookmarks')) return;
 
-		const emptyState = container.querySelector('.empty-state');
-		if (!emptyState) return;
+		const rootEmptyState = container.querySelector('.empty-state-container');
+		if (!rootEmptyState) return;
 
 		const items = this.getBookmarks();
+		if (items.length === 0 && !this.settings.asciiArt) return;
+
+		// Render ASCII art if it exists (above the default actions)
+		if (this.settings.asciiArt) {
+			const lines = this.settings.asciiArt.split('\n');
+			const lengthObjects = lines.map(line => ({ 
+				length: line.trim().length, 
+				leading: line.match(/^\s+/)?.[0]?.length || 0
+			}))
+			const maxLineLength = lengthObjects.reduce((acc, lo) => {
+				return (lo.length > acc.length) ? lo : acc
+			}, { length: 0, leading: 0 });
+
+			const trimmedLines = lines.map(line => line.slice(
+				maxLineLength.leading, 
+				Math.min(line.length, maxLineLength.length + maxLineLength.leading)
+			));
+			const trimmedAsciiArt = trimmedLines.join('\n');
+
+			const asciiArtEl = createEl('pre', { cls: 'new-tab-bookmarks-ascii-art' });
+			asciiArtEl.createEl('code', { text: trimmedAsciiArt });
+			rootEmptyState.prepend(asciiArtEl);
+		}
+
 		if (items.length === 0) return;
 
 		// Divider between existing actions and bookmarks
-		const divider = createEl('div', { cls: 'new-tab-bookmarks-divider' });
-		emptyState.appendChild(divider);
+		const divider = createEl('div', { cls: 'new-tab-bookmarks-divider', text: " " });
+		rootEmptyState.appendChild(divider);
 
 		const wrapper = createEl('div', { cls: 'new-tab-bookmarks-bookmarks' });
 
 		this.renderItems(items, wrapper, leaf);
 
-		emptyState.appendChild(wrapper);
+		rootEmptyState.appendChild(wrapper);
+		rootEmptyState.classList.add("rendered");
 	}
 
 	/** Creates a sidebar-style tree-item row and returns the clickable `tree-item-self` element. */

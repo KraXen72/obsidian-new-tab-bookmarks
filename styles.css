@@ -1,15 +1,61 @@
-.new-tab-bookmarks-divider {
+.empty-state-container {
+	display: none;
+}
+.empty-state-container.rendered {
+	display: grid;
+	grid-template-rows: min-content min-content min-content;
+	grid-template-columns: 1fr 1fr;
+
+	grid-template-areas: 
+		"ascii ascii"
+		"title title"
+		"actions bookmarks";
+
+	row-gap: var(--size-4-2);
+	box-sizing: border-box;
+
+	max-height: unset;
+}
+
+.empty-state-title {
+	grid-area: title;
+	margin: 0;
+}
+
+.new-tab-bookmarks-ascii-art {
+	grid-area: ascii;
+	/* position: absolute;
+	transform: translateY(calc(-100% - 1rem)); */
+
+	font-family: var(--font-monospace);
+	font-size: var(--font-small);
+	line-height: 1.2;
+	white-space: pre;
+	overflow-x: auto;
+	border: none;
+}
+
+.new-tab-bookmarks-ascii-art code {
+	color: var(--nav-item-color);
+	font-family: var(--font-monospace);
+	border: none;
+}
+
+.new-tab-bookmarks-bookmarks,
+.empty-state-action-list {
+	margin: 0;
 	width: 100%;
-	max-width: 368px;
-	height: 1px;
-	background-color: var(--background-modifier-border);
-	margin: var(--size-4-4) 0 0;
+	max-width: 600px;
+	padding: var(--size-4-4) var(--size-4-4) var(--size-4-4);
 }
 
 .new-tab-bookmarks-bookmarks {
-	padding: var(--size-4-4) var(--size-4-4) var(--size-4-4);
-	width: 100%;
-	max-width: 400px;
+	grid-area: bookmarks;
+	border-left: 1px solid var(--background-modifier-border);
+}
+.empty-state-action-list {
+	grid-area: actions;
+	margin-right: var(--size-4-4)
 }
 
 .new-tab-bookmarks-group-header {
@@ -22,4 +68,25 @@
 
 .new-tab-bookmarks-subgroup {
 	padding-left: var(--size-4-3);
+}
+
+/* style empty-state-action as bookmarks */
+.empty-state-action {
+    align-items: baseline;
+    display: flex;
+	justify-content: end;
+    border-radius: var(--nav-item-radius);
+    corner-shape: var(--corner-shape);
+    color: var(--nav-item-color);
+    font-size: var(--nav-item-size);
+    line-height: var(--line-height-tight);
+    font-weight: var(--nav-item-weight);
+    margin-bottom: var(--nav-item-margin-bottom);
+    padding: var(--nav-item-padding);
+    position: relative;
+}
+body:not(.is-grabbing) .empty-state-action.tappable:hover {
+	color: var(--nav-item-color-hover);
+    background-color: var(--nav-item-background-hover);
+    font-weight: var(--nav-item-weight-hover);
 }
