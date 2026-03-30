@@ -1,6 +1,7 @@
 # New Tab Bookmarks
 
 Shows a list of bookmarks in the New Tab view.
+Optionally, you can also show some ascii art (as in the screenshot).
 
 ![screenshot](./screenshot.png)
 
