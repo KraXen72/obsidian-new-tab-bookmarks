@@ -1,9 +1,10 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "new-tab-bookmarks",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Shows a list of bookmarks in the New Tab view.",
 	"main": "main.js",
 	"type": "module",
+	"author": "KraXen72 <dpelech1@gmail.com>",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",

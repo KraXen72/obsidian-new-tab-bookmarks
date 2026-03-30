@@ -54,11 +54,17 @@ jobs:
       - name: Download plugin files
         uses: actions/download-artifact@v4
 
+      - name: Create zip archive
+        run: |
+          cd plugin-files
+          zip plugin.zip main.js manifest.json styles.css
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             plugin-files/main.js
             plugin-files/manifest.json
-            plugin-files/styles.css
+            plugin-files/styles.
+            plugin-files/plugin.zip
           generate_release_notes: true
