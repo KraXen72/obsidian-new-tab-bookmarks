@@ -99,22 +99,18 @@ export default class BookmarksNewTabPlugin extends Plugin {
 
 		if (items.length === 0) return;
 
-		// Divider between existing actions and bookmarks
-		const divider = createEl('div', { cls: 'new-tab-bookmarks-divider', text: " " });
-		rootEmptyState.appendChild(divider);
-
 		const wrapper = createEl('div', { cls: 'new-tab-bookmarks-bookmarks' });
 
 		this.renderItems(items, wrapper, leaf);
 
 		rootEmptyState.appendChild(wrapper);
-		rootEmptyState.classList.add("rendered");
+		rootEmptyState.classList.add("rendered"); // prevent flash when ascii art & bookmarks are being rendered
 	}
 
 	/** Creates a sidebar-style tree-item row and returns the clickable `tree-item-self` element. */
 	private createTreeItem(parent: HTMLElement, iconId: string, label: string, path?: string): HTMLElement {
 		const treeItem = parent.createEl('div', { cls: 'tree-item', ...(path ? { attr: { 'data-path': path } } : {}) });
-		const self = treeItem.createEl('div', { cls: 'tree-item-self bookmark is-clickable', attr: { draggable: 'true' } });
+		const self = treeItem.createEl('div', { cls: 'tree-item-self bookmark is-clickable' });
 		self.style.setProperty('margin-inline-start', '0px', 'important');
 		self.style.setProperty('padding-inline-start', '24px', 'important');
 		const iconEl = self.createEl('div', { cls: 'tree-item-icon' });
