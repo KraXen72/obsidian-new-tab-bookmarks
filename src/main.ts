@@ -1,99 +1,126 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
+interface BookmarkItem {
+	type: 'file' | 'folder' | 'search' | 'url' | 'group' | 'graph';
+	title?: string;
+	path?: string;
+	url?: string;
+	query?: string;
+	items?: BookmarkItem[];
+}
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class BookmarksNewTabPlugin extends Plugin {
 	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+		// Inject into any already-open empty leaves on load
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			if (leaf.getViewState().type === 'empty') {
+				this.injectBookmarks(leaf);
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
+
+		// Re-run on every layout change (new tab opened, leaf switched, etc.)
+		this.registerEvent(
+			this.app.workspace.on('layout-change', () => {
+				this.app.workspace.iterateAllLeaves((leaf) => {
+					if (leaf.getViewState().type === 'empty') {
+						this.injectBookmarks(leaf);
 					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+				});
+			})
+		);
 	}
 
 	onunload() {
+		document.querySelectorAll('.new-tab-bookmarks-bookmarks').forEach(el => el.remove());
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+	private getBookmarks(): BookmarkItem[] {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const bp = (this.app as any).internalPlugins?.plugins?.['bookmarks'];
+		return bp?.instance?.items ?? [];
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+	private injectBookmarks(leaf: WorkspaceLeaf) {
+		const container = leaf.view.containerEl;
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+		// Don't inject twice into the same leaf
+		if (container.querySelector('.new-tab-bookmarks-bookmarks')) return;
+
+		const emptyState = container.querySelector('.empty-state');
+		if (!emptyState) return;
+
+		const items = this.getBookmarks();
+		if (items.length === 0) return;
+
+		const wrapper = createEl('div', { cls: 'new-tab-bookmarks-bookmarks' });
+		createEl('p', { text: 'Bookmarks', cls: 'new-tab-bookmarks-bookmarks-heading' }, el => wrapper.appendChild(el));
+		const list = createEl('ul', { cls: 'new-tab-bookmarks-bookmarks-list' });
+		wrapper.appendChild(list);
+
+		this.renderItems(items, list);
+
+		emptyState.insertBefore(wrapper, emptyState.firstChild);
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+	private renderItems(items: BookmarkItem[], parent: HTMLElement) {
+		for (const item of items) {
+			const li = parent.createEl('li', { cls: 'new-tab-bookmarks-bookmark-item' });
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+			switch (item.type) {
+				case 'group': {
+					li.createEl('span', {
+						text: item.title ?? 'Group',
+						cls: 'new-tab-bookmarks-bookmark-group-label',
+					});
+					if (item.items?.length) {
+						const subList = li.createEl('ul', { cls: 'new-tab-bookmarks-bookmarks-list new-tab-bookmarks-bookmarks-sublist' });
+						this.renderItems(item.items, subList);
+					}
+					break;
+				}
+				case 'file':
+				case 'folder': {
+					const label = item.title ?? item.path ?? '(untitled)';
+					const link = li.createEl('a', { text: label, cls: 'new-tab-bookmarks-bookmark-link' });
+					link.addEventListener('click', (e) => {
+						e.preventDefault();
+						if (item.path) {
+							this.app.workspace.openLinkText(item.path, '', false);
+						}
+					});
+					break;
+				}
+				case 'url': {
+					const label = item.title ?? item.url ?? '(no url)';
+					const link = li.createEl('a', { text: label, cls: 'new-tab-bookmarks-bookmark-link new-tab-bookmarks-bookmark-url' });
+					link.href = item.url ?? '#';
+					link.setAttribute('target', '_blank');
+					link.setAttribute('rel', 'noopener noreferrer');
+					break;
+				}
+				case 'search': {
+					const label = item.title ?? `Search: ${item.query ?? ''}`;
+					const link = li.createEl('a', { text: label, cls: 'new-tab-bookmarks-bookmark-link new-tab-bookmarks-bookmark-search' });
+					link.addEventListener('click', (e) => {
+						e.preventDefault();
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						(this.app as any).internalPlugins?.plugins?.['global-search']
+							?.instance?.openGlobalSearch(item.query ?? '');
+					});
+					break;
+				}
+				case 'graph': {
+					const label = item.title ?? 'Graph view';
+					const link = li.createEl('a', { text: label, cls: 'new-tab-bookmarks-bookmark-link new-tab-bookmarks-bookmark-graph' });
+					link.addEventListener('click', (e) => {
+						e.preventDefault();
+						this.app.commands.executeCommandById('graph:open');
+					});
+					break;
+				}
+				default:
+					li.createEl('span', { text: item.title ?? item.type });
+			}
+		}
 	}
 }
