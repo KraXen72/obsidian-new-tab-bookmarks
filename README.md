@@ -2,6 +2,8 @@
 
 Shows a list of bookmarks in the New Tab view.
 
+![screenshot](./screenshot.png)
+
 ## Local Installation
 
 1. Clone this repo. 
