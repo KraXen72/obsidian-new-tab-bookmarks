@@ -65,6 +65,6 @@ jobs:
           files: |
             plugin-files/main.js
             plugin-files/manifest.json
-            plugin-files/styles.
+            plugin-files/styles.css
             plugin-files/plugin.zip
           generate_release_notes: true
