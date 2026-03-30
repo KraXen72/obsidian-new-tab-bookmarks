@@ -3,7 +3,7 @@
 	"name": "Bookmarks in New Tab",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Renders your bookmarks at the top of every new tab.",
+	"description": "Shows a list of bookmarks in the New Tab view.",
 	"author": "KraXen72",
 	"isDesktopOnly": false
 }
