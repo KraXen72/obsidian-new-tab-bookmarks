@@ -57,7 +57,7 @@ jobs:
       - name: Create zip archive
         run: |
           cd plugin-files
-          zip plugin.zip main.js manifest.json styles.css
+          zip new-tab-bookmarks.zip main.js manifest.json styles.css
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -66,5 +66,5 @@ jobs:
             plugin-files/main.js
             plugin-files/manifest.json
             plugin-files/styles.css
-            plugin-files/plugin.zip
+            plugin-files/new-tab-bookmarks.zip
           generate_release_notes: true
