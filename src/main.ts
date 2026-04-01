@@ -24,23 +24,13 @@ export default class BookmarksNewTabPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-		// Inject into any already-open empty leaves on load
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			if (leaf.getViewState().type === 'empty') {
-				this.injectBookmarks(leaf);
-			}
+
+		const injectAll = () => this.app.workspace.iterateAllLeaves((leaf) => {
+			if (leaf.getViewState().type === 'empty') this.injectBookmarks(leaf);
 		});
 
-		// Re-run on every layout change (new tab opened, leaf switched, etc.)
-		this.registerEvent(
-			this.app.workspace.on('layout-change', () => {
-				this.app.workspace.iterateAllLeaves((leaf) => {
-					if (leaf.getViewState().type === 'empty') {
-						this.injectBookmarks(leaf);
-					}
-				});
-			})
-		);
+		injectAll();
+		this.registerEvent(this.app.workspace.on('layout-change', injectAll));
 	}
 
 	async loadSettings() {
@@ -52,9 +42,7 @@ export default class BookmarksNewTabPlugin extends Plugin {
 	}
 
 	onunload() {
-		document.querySelectorAll('.new-tab-bookmarks-bookmarks').forEach(el => el.remove());
-		document.querySelectorAll('.new-tab-bookmarks-divider').forEach(el => el.remove());
-		document.querySelectorAll('.new-tab-bookmarks-ascii-art').forEach(el => el.remove());
+		document.querySelectorAll('.new-tab-bookmarks-bookmarks, .new-tab-bookmarks-ascii-art').forEach(el => el.remove());
 	}
 
 	private getBookmarks(): BookmarkItem[] {
@@ -65,8 +53,6 @@ export default class BookmarksNewTabPlugin extends Plugin {
 
 	private injectBookmarks(leaf: WorkspaceLeaf) {
 		const container = leaf.view.containerEl;
-
-		// Don't inject twice into the same leaf
 		if (container.querySelector('.new-tab-bookmarks-bookmarks')) return;
 
 		const rootEmptyState = container.querySelector('.empty-state-container');
@@ -75,22 +61,17 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		const items = this.getBookmarks();
 		if (items.length === 0 && !this.settings.asciiArt) return;
 
-		// Render ASCII art if it exists (above the default actions)
 		if (this.settings.asciiArt) {
 			const lines = this.settings.asciiArt.split('\n');
-			const lengthObjects = lines.map(line => ({ 
-				length: line.trim().length, 
+			const lengthObjects = lines.map(line => ({
+				length: line.trim().length,
 				leading: line.match(/^\s+/)?.[0]?.length || 0
-			}))
-			const maxLineLength = lengthObjects.reduce((acc, lo) => {
-				return (lo.length > acc.length) ? lo : acc
-			}, { length: 0, leading: 0 });
-
-			const trimmedLines = lines.map(line => line.slice(
-				maxLineLength.leading, 
-				Math.min(line.length, maxLineLength.length + maxLineLength.leading)
-			));
-			const trimmedAsciiArt = trimmedLines.join('\n');
+			}));
+			const maxLine = lengthObjects.reduce((acc, lo) => lo.length > acc.length ? lo : acc, { length: 0, leading: 0 });
+			const trimmedAsciiArt = lines.map(line => line.slice(
+				maxLine.leading,
+				Math.min(line.length, maxLine.length + maxLine.leading)
+			)).join('\n');
 
 			const asciiArtEl = createEl('pre', { cls: 'new-tab-bookmarks-ascii-art' });
 			asciiArtEl.createEl('code', { text: trimmedAsciiArt });
@@ -100,11 +81,9 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		if (items.length === 0) return;
 
 		const wrapper = createEl('div', { cls: 'new-tab-bookmarks-bookmarks' });
-
 		this.renderItems(items, wrapper, leaf);
-
 		rootEmptyState.appendChild(wrapper);
-		rootEmptyState.classList.add("rendered"); // prevent flash when ascii art & bookmarks are being rendered
+		rootEmptyState.classList.add('rendered');
 	}
 
 	/** Creates a sidebar-style tree-item row and returns the clickable `tree-item-self` element. */
@@ -113,17 +92,16 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		const self = treeItem.createEl('div', { cls: 'tree-item-self bookmark is-clickable' });
 		self.style.setProperty('margin-inline-start', '0px', 'important');
 		self.style.setProperty('padding-inline-start', '24px', 'important');
-		const iconEl = self.createEl('div', { cls: 'tree-item-icon' });
-		setIcon(iconEl, iconId);
+		setIcon(self.createEl('div', { cls: 'tree-item-icon' }), iconId);
 		const inner = self.createEl('div', { cls: 'tree-item-inner' });
-		inner.createEl('span', { text: label, cls: 'tree-item-inner-text' });
+		inner.createEl('span', { text: label, cls: 'tree-item-inner-text', attr: { title: label } });
 		return self;
 	}
 
-	/** Resolves a display label for a file/folder bookmark.
-	 *  Prefers an explicit title, then falls back to the vault object's name
-	 *  (TFile.basename strips the extension; TFolder.name is just the folder name).
-	 *  If the path isn't in the vault yet, takes the last path segment as a last resort.
+	/**
+	 * Resolves a display label for a file/folder bookmark.
+	 * Prefers an explicit title, then the vault object name,
+	 * then falls back to the last path segment.
 	 */
 	private resolveFileLabel(item: BookmarkItem): string {
 		if (item.title) return item.title;
@@ -131,75 +109,70 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		const vaultFile = this.app.vault.getAbstractFileByPath(item.path);
 		if (vaultFile instanceof TFile) return vaultFile.basename;
 		if (vaultFile instanceof TFolder) return vaultFile.name;
-		// Fallback for paths not currently in the vault
 		return item.path.split('/').pop()?.replace(/\.md$/, '') ?? item.path;
 	}
 
-	private renderItems(items: BookmarkItem[], parent: HTMLElement, leaf: WorkspaceLeaf) {
-		for (const item of items) {
-			switch (item.type) {
-				case 'group': {
-					const groupEl = parent.createEl('div', { cls: 'tree-item new-tab-bookmarks-group' });
-					groupEl.createEl('div', {
-						text: item.title || 'Group',
-						cls: 'tree-item-self new-tab-bookmarks-group-header',
-					});
-					if (item.items?.length) {
-						const subContainer = groupEl.createEl('div', { cls: 'new-tab-bookmarks-subgroup' });
-						this.renderItems(item.items, subContainer, leaf);
-					}
-					break;
+	private renderItem(item: BookmarkItem, parent: HTMLElement, leaf: WorkspaceLeaf) {
+		switch (item.type) {
+			case 'group': {
+				const groupEl = parent.createEl('div', { cls: 'tree-item new-tab-bookmarks-group' });
+				groupEl.createEl('div', {
+					text: item.title || 'Group',
+					cls: 'tree-item-self new-tab-bookmarks-group-header',
+				});
+				if (item.items?.length) {
+					const subContainer = groupEl.createEl('div', { cls: 'new-tab-bookmarks-subgroup' });
+					this.renderItems(item.items, subContainer, leaf);
 				}
-				case 'file':
-				case 'folder': {
-					const label = this.resolveFileLabel(item);
-					const icon = item.type === 'folder' ? 'folder' : 'file';
-					const self = this.createTreeItem(parent, icon, label, item.path);
-					self.addEventListener('click', (e) => {
-						e.preventDefault();
-						if (!item.path) return;
-						const tfile = this.app.vault.getFileByPath(item.path);
-						if (tfile) {
-							leaf.openFile(tfile);
-						} else {
-							// Folder or file not found: fall back to openLinkText
-							this.app.workspace.openLinkText(item.path, '', false);
-						}
-					});
-					break;
-				}
-				case 'url': {
-					const label = item.title || item.url || '(no url)';
-					const self = this.createTreeItem(parent, 'link', label);
-					self.addEventListener('click', () => {
-						window.open(item.url ?? '#', '_blank', 'noopener,noreferrer');
-					});
-					break;
-				}
-				case 'search': {
-					const label = item.title || `Search: ${item.query ?? ''}`;
-					const self = this.createTreeItem(parent, 'search', label);
-					self.addEventListener('click', (e) => {
-						e.preventDefault();
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						(this.app as any).internalPlugins?.plugins?.['global-search']
-							?.instance?.openGlobalSearch(item.query ?? '');
-					});
-					break;
-				}
-				case 'graph': {
-					const label = item.title || 'Graph view';
-					const self = this.createTreeItem(parent, 'git-fork', label);
-					self.addEventListener('click', (e) => {
-						e.preventDefault();
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						(this.app as any).commands?.executeCommandById('graph:open');
-					});
-					break;
-				}
-				default:
-					parent.createEl('div', { text: item.title ?? item.type });
+				break;
 			}
+			case 'file':
+			case 'folder': {
+				const self = this.createTreeItem(parent, item.type, this.resolveFileLabel(item), item.path);
+				self.addEventListener('click', (e) => {
+					e.preventDefault();
+					if (!item.path) return;
+					const tfile = this.app.vault.getFileByPath(item.path);
+					if (tfile) {
+						leaf.openFile(tfile);
+					} else {
+						this.app.workspace.openLinkText(item.path, '', false);
+					}
+				});
+				break;
+			}
+			case 'url': {
+				const self = this.createTreeItem(parent, 'link', item.title || item.url || '(no url)');
+				self.addEventListener('click', () => {
+					window.open(item.url ?? '#', '_blank', 'noopener,noreferrer');
+				});
+				break;
+			}
+			case 'search': {
+				const self = this.createTreeItem(parent, 'search', item.title || `Search: ${item.query ?? ''}`);
+				self.addEventListener('click', (e) => {
+					e.preventDefault();
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(this.app as any).internalPlugins?.plugins?.['global-search']
+						?.instance?.openGlobalSearch(item.query ?? '');
+				});
+				break;
+			}
+			case 'graph': {
+				const self = this.createTreeItem(parent, 'git-fork', item.title || 'Graph view');
+				self.addEventListener('click', (e) => {
+					e.preventDefault();
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(this.app as any).commands?.executeCommandById('graph:open');
+				});
+				break;
+			}
+			default:
+				parent.createEl('div', { text: item.title ?? item.type });
 		}
+	}
+
+	private renderItems(items: BookmarkItem[], parent: HTMLElement, leaf: WorkspaceLeaf) {
+		for (const item of items) this.renderItem(item, parent, leaf);
 	}
 }

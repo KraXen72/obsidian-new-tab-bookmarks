@@ -24,8 +24,6 @@
 
 .new-tab-bookmarks-ascii-art {
 	grid-area: ascii;
-	/* position: absolute;
-	transform: translateY(calc(-100% - 1rem)); */
 
 	font-family: var(--font-monospace);
 	font-size: var(--font-small);
@@ -70,6 +68,19 @@
 	padding-left: var(--size-4-3);
 }
 
+/* Truncate long names in bookmarks */
+.new-tab-bookmarks-bookmarks .tree-item-inner {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.new-tab-bookmarks-bookmarks .tree-item-inner-text {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* style empty-state-action as bookmarks */
 .empty-state-action {
     align-items: baseline;
@@ -84,6 +95,9 @@
     margin-bottom: var(--nav-item-margin-bottom);
     padding: var(--nav-item-padding);
     position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 body:not(.is-grabbing) .empty-state-action.tappable:hover {
 	color: var(--nav-item-color-hover);
