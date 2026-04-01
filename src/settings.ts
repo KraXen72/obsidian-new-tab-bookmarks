@@ -14,7 +14,18 @@ export class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('ASCII Art')
+			.setName('Show recent notes')
+			.setDesc('Display the 5 most recently opened notes (excluding currently open ones) on the left side of the homepage.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showRecentNotes ?? false)
+				.onChange(async (value) => {
+					this.plugin.settings.showRecentNotes = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName('ASCII art')
 			.setDesc('ASCII art to display on the new tab page. Use monospace-friendly characters.')
 			.addTextArea(textarea => {
 				textarea

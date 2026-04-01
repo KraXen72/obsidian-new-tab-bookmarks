@@ -17,6 +17,15 @@
 	max-height: unset;
 }
 
+.empty-state-container.rendered.show-recent {
+	grid-template-rows: min-content min-content 1fr min-content;
+	grid-template-areas:
+		"ascii ascii"
+		"title title"
+		"recent bookmarks"
+		"actions actions";
+}
+
 .empty-state-title {
 	grid-area: title;
 	margin: 0;
@@ -24,8 +33,6 @@
 
 .new-tab-bookmarks-ascii-art {
 	grid-area: ascii;
-	/* position: absolute;
-	transform: translateY(calc(-100% - 1rem)); */
 
 	font-family: var(--font-monospace);
 	font-size: var(--font-small);
@@ -42,6 +49,7 @@
 }
 
 .new-tab-bookmarks-bookmarks,
+.new-tab-bookmarks-recent,
 .empty-state-action-list {
 	margin: 0;
 	width: 100%;
@@ -53,9 +61,35 @@
 	grid-area: bookmarks;
 	border-left: 1px solid var(--background-modifier-border);
 }
+
+.new-tab-bookmarks-recent {
+	grid-area: recent;
+}
+
 .empty-state-action-list {
 	grid-area: actions;
-	margin-right: var(--size-4-4)
+	margin-right: var(--size-4-4);
+}
+
+.empty-state-container.rendered.show-recent .empty-state-action-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--size-4-1);
+	align-items: center;
+	justify-content: center;
+	max-width: unset;
+	margin-right: 0;
+	padding: var(--size-4-2) var(--size-4-4);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.empty-state-container.rendered.show-recent .empty-state-action {
+	justify-content: flex-start;
+	margin-bottom: 0;
+	flex: 0 0 auto;
+	padding-inline-start: var(--size-4-3);
+	padding-inline-end: var(--size-4-3);
 }
 
 .new-tab-bookmarks-group-header {
@@ -70,7 +104,19 @@
 	padding-left: var(--size-4-3);
 }
 
-/* style empty-state-action as bookmarks */
+.new-tab-bookmarks-bookmarks .tree-item-inner,
+.new-tab-bookmarks-recent .tree-item-inner {
+	min-width: 0;
+}
+
+.new-tab-bookmarks-bookmarks .tree-item-inner-text,
+.new-tab-bookmarks-recent .tree-item-inner-text {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
 .empty-state-action {
     align-items: baseline;
     display: flex;
