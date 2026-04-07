@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: BookmarksNewTabPluginSettings = {
 };
 
 export default class BookmarksNewTabPlugin extends Plugin {
+	//@ts-expect-error it will load using the onload constructor anyway.
 	settings: BookmarksNewTabPluginSettings;
 
 	async onload() {
