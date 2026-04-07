@@ -41,6 +41,18 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	rerenderOpenNewTabs() {
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			if (leaf.getViewState().type !== 'empty') return;
+			const container = leaf.view.containerEl;
+			container
+				.querySelectorAll('.new-tab-bookmarks-bookmarks, .new-tab-bookmarks-ascii-art')
+				.forEach((el) => el.remove());
+			container.querySelector('.empty-state-container')?.classList.remove('rendered');
+			this.injectBookmarks(leaf);
+		});
+	}
+
 	onunload() {
 		document.querySelectorAll('.new-tab-bookmarks-bookmarks, .new-tab-bookmarks-ascii-art').forEach(el => el.remove());
 	}
@@ -64,19 +76,23 @@ export default class BookmarksNewTabPlugin extends Plugin {
 		if (this.settings.asciiArt) {
 			const lines = this.settings.asciiArt.split('\n');
 			const lengthObjects = lines.map(line => ({
-				length: line.trim().length,
-				leading: line.match(/^\s+/)?.[0]?.length || 0
+					length: line.trim().length,
+					leading: line.match(/^\s+/)?.[0]?.length || 0
 			}));
-			const maxLine = lengthObjects.reduce((acc, lo) => lo.length > acc.length ? lo : acc, { length: 0, leading: 0 });
-			const trimmedAsciiArt = lines.map(line => line.slice(
-				maxLine.leading,
-				Math.min(line.length, maxLine.length + maxLine.leading)
-			)).join('\n');
+
+			const nonEmptyLines = lengthObjects.filter(lo => lo.length > 0);
+			const minLeading = nonEmptyLines.reduce((min, lo) => Math.min(min, lo.leading), Infinity);
+			const maxLine = nonEmptyLines.reduce((acc, lo) => lo.length > acc.length ? lo : acc, { length: 0, leading: 0 });
+			
+			const trimmedAsciiArt = lines.map(line => line
+				.padEnd(maxLine.length, " ")
+				.slice(minLeading, minLeading + maxLine.length)
+			).join('\n');
 
 			const asciiArtEl = createEl('pre', { cls: 'new-tab-bookmarks-ascii-art' });
 			asciiArtEl.createEl('code', { text: trimmedAsciiArt });
 			rootEmptyState.prepend(asciiArtEl);
-		}
+	}
 
 		if (items.length === 0) return;
 

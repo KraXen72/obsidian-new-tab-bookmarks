@@ -3,12 +3,12 @@
 		"inlineSourceMap": true,
 		"inlineSources": true,
 		"module": "ESNext",
-		"target": "ES6",
+		"target": "es2023",
 		"allowJs": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
 		"noImplicitReturns": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"importHelpers": true,
 		"noUncheckedIndexedAccess": true,
 		"isolatedModules": true,
@@ -20,7 +20,8 @@
 			"DOM",
 			"ES5",
 			"ES6",
-			"ES7"
+			"ES7",
+			"ES2023"
 		]
 	},
 	"include": [

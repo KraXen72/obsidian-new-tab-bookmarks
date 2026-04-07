@@ -15,6 +15,7 @@
 	box-sizing: border-box;
 
 	max-height: unset;
+	max-width: unset;
 }
 
 .empty-state-title {
@@ -22,21 +23,34 @@
 	margin: 0;
 }
 
-.new-tab-bookmarks-ascii-art {
+.new-tab-bookmarks-ascii-art,
+.new-tab-bookmarks-textarea-container textarea {
 	grid-area: ascii;
+	display: inline-block;
 
 	font-family: var(--font-monospace);
 	font-size: var(--font-small);
-	line-height: 1.2;
+	/* line-height: 1.2; */
+	/* line-height: 1.0; */
+	line-height: 1.08;
 	white-space: pre;
 	overflow-x: auto;
 	border: none;
+
+}
+
+.new-tab-bookmarks-ascii-art {
+	margin-block: 0;
 }
 
 .new-tab-bookmarks-ascii-art code {
+	display: inline-block;
 	color: var(--nav-item-color);
 	font-family: var(--font-monospace);
 	border: none;
+
+	text-align: left;
+	width: min-content;
 }
 
 .new-tab-bookmarks-bookmarks,
